@@ -1,0 +1,1253 @@
+# Ethical Hacking Tools — Easy Complete Study Notes
+
+I'll explain each tool in simple language, keeping all the definitions, uses, ethical hacking phases, commands, options, examples, output, and procedures from your notes. I'll also explain the technical words so you can understand them easily and write them in exams.
+
+## First, understand the ethical hacking phases
+
+| Phase                    | Simple meaning                                              |
+| ------------------------ | ----------------------------------------------------------- |
+| Reconnaissance           | Collect information about the target.                       |
+| Scanning                 | Find live devices, open ports, and running services.        |
+| Vulnerability Assessment | Find weaknesses in a system.                                |
+| Gaining Access           | Test whether a weakness can be exploited to enter a system. |
+| Maintaining Access       | Check whether access could persist after entry.             |
+| Covering Tracks          | Understand how attackers may try to hide their activities.  |
+| Detection / Monitoring   | Detect suspicious activities and investigate incidents.     |
+
+Important: Use active scanning and testing tools only on systems you own or have explicit permission to test. Use isolated lab machines such as DVWA and Metasploitable for practice.
+
+## 2. Sysmon — System Monitor
+
+Detection / Monitoring
+
+### 1. Definition
+
+Sysmon is a free tool from Microsoft's Sysinternals collection. It runs as a Windows service and records detailed information about activities happening on a computer.
+
+In simple words, Sysmon acts like a security camera for a Windows computer. It records what programs run, which network connections are made, and which files or registry entries change.
+
+These records are stored in the Windows Event Log.
+
+### 2. Main uses
+
+- Process monitoring: Records programs that start running.
+- Parent-child process tracking: Shows which program started another program.
+- Network monitoring: Records network connections made by processes.
+- File monitoring: Records selected file creation activities.
+- Malware detection: Helps identify suspicious program behaviour.
+- Lateral movement detection: Helps identify signs that an attacker is moving from one computer to another.
+- SIEM integration: Sends useful security events to SIEM tools for analysis.
+- Forensic investigation: Helps investigators understand what happened after a security incident.
+
+SIEM means Security Information and Event Management. It collects and analyses security logs from different systems.
+
+### 3. Phase
+
+Sysmon belongs to Detection and Monitoring (Blue Team / Defensive Security). It is not an attacking tool.
+
+It helps defenders detect activities that an attacker may try to hide while covering their tracks.
+
+### 4. Important Event IDs
+
+An Event ID is a number that identifies a particular type of event in the Windows log.
+
+| Event ID | Meaning in simple words                            |
+| -------- | -------------------------------------------------- |
+| 1        | A process or program was created.                  |
+| 3        | A network connection was made.                     |
+| 7        | An image or DLL was loaded into a process.         |
+| 11       | A file was created.                                |
+| 12       | Registry key or object creation/deletion activity. |
+| 13       | Registry value modification.                       |
+| 14       | Registry key or value rename activity.             |
+| 22       | A DNS query was made.                              |
+
+Additional terms:
+
+- DLL: A Dynamic Link Library contains code that programs can use.
+- Registry: A Windows database containing system and application settings.
+- DNS query: A request to find information about a domain name, such as its IP address.
+
+### 5. Commands
+
+```
+sysmon64.exe -c config.xml
+```
+
+Applies the configuration in `config.xml`, which determines what Sysmon records.
+
+```
+sysmon64.exe -c
+```
+
+Displays the current configuration.
+
+These are configuration commands, not installation commands.
+
+### 6. How to view Sysmon logs
+
+1. Open Event Viewer in Windows.
+2. Navigate to:
+
+   `Applications and Services Logs → Microsoft → Windows → Sysmon → Operational`
+3. Filter the log using an Event ID, such as Event ID 1.
+4. Look for suspicious activities.
+
+For example, if `winword.exe` (Microsoft Word) starts `powershell.exe`, investigate why Word launched PowerShell. This can be legitimate, but it can also indicate a malicious document executing commands.
+
+5\. Compare Event ID 1 (process creation) with Event ID 3 (network connection) to investigate which program may have communicated over the network.
+
+### 7. Practical guide
+
+1. Apply a suitable Sysmon configuration file. A commonly used example is SwiftOnSecurity's public configuration.
+2. Open Event Viewer.
+3. Filter events by their IDs.
+4. Examine unusual process relationships.
+5. Correlate process and network events to investigate suspicious activity.
+
+Remember: Sysmon records activity; it does not automatically mean every recorded activity is malicious.
+
+## 3. theHarvester
+
+Reconnaissance — Passive OSINT
+
+### 1. Definition
+
+theHarvester is a Python-based OSINT tool that collects publicly available information about a domain.
+
+It can discover email addresses, subdomains, hostnames, employee names, and information about open ports from supported public sources.
+
+OSINT stands for Open-Source Intelligence. It means collecting information from publicly available sources.
+
+Think of theHarvester as a tool that searches the internet for publicly available information about an organisation.
+
+### 2. Main uses
+
+- Email harvesting: Finds publicly listed email addresses to assess phishing exposure.
+- Subdomain discovery: Finds additional domain names belonging to an organisation.
+- Hostname discovery: Identifies names associated with internet-connected systems.
+- Target profiling: Collects information before an authorised security assessment.
+
+### 3. Phase
+
+It belongs to Reconnaissance (Passive OSINT) because it mainly queries external information sources rather than directly probing the target.
+
+However, some features, such as DNS resolution, interact with DNS infrastructure.
+
+### 4. Command syntax
+
+```
+theHarvester -d <domain> -b <source> -l <limit> -f <output_file>
+```
+
+Here, the angle-bracketed terms are placeholders. Replace them with actual values.
+
+### 5. Options explained
+
+| Option | Meaning                                                                             |
+| ------ | ----------------------------------------------------------------------------------- |
+| `-d`   | Specifies the target domain.                                                        |
+| `-b`   | Specifies the source or sources to search.                                          |
+| `-l`   | Limits the number of results requested.                                             |
+| `-f`   | Saves the results to an output file.                                                |
+| `-n`   | Performs DNS resolution on discovered hosts, where supported by the version.        |
+| `-c`   | Performs DNS brute-force discovery, where supported.                                |
+| `-v`   | Enables additional verification or verbose functionality, depending on the version. |
+
+Sources may include search engines and services such as Shodan. The available source names depend on the installed version and current API support.
+
+### 6. Example
+
+```
+theHarvester -d example.com -b bing -l 500 -f report
+```
+
+Explanation:
+
+- `-d example.com`: Search for information related to `example.com`.
+- `-b bing`: Use Bing as the source.
+- `-l 500`: Request up to 500 results.
+- `-f report`: Save the findings in a report file.
+
+The output may include discovered emails and hostnames. The actual number of results may be lower than the requested limit.
+
+### 7. Practical guide
+
+1. Identify the domain included in your authorised scope.
+2. Choose supported information sources using `-b`.
+3. Run the search.
+4. Review the discovered emails, hostnames, and other results.
+5. Export the results using `-f` for your OSINT report.
+
+Remember: theHarvester = collecting public information about a domain.
+
+## 4. Netdiscover
+
+Scanning — Active Host Discovery
+
+### 1. Definition
+
+Netdiscover is a network reconnaissance tool that discovers devices on a local network using ARP (Address Resolution Protocol).
+
+In simple words, Netdiscover helps you find which devices are connected to your local network and displays their IP and MAC addresses.
+
+It supports active discovery and passive listening modes.
+
+### 2. Main uses
+
+- Finding live devices on a local network.
+- Identifying the IP addresses of discovered devices.
+- Finding their MAC addresses.
+- Identifying the possible manufacturer through the MAC address.
+- Quickly discovering hosts before performing a more detailed Nmap scan.
+
+### 3. Phase
+
+It belongs to Scanning (Active Host Discovery) when it sends ARP requests.
+
+Passive mode only listens for relevant traffic and does not send discovery probes.
+
+### 4. Important terms
+
+- IP address: A logical address used to identify a device on a network.
+- MAC address: A hardware/network-interface address used on a local network.
+- ARP: A protocol that helps determine the MAC address associated with a local IPv4 address.
+- Subnet: A smaller network within a larger IP network.
+- Network interface: The network adapter through which a computer communicates, such as `eth0`.
+
+### 5. Command syntax
+
+```
+netdiscover -i <interface> -r <range>
+```
+
+### 6. Options explained
+
+| Option | Meaning                                                          |
+| ------ | ---------------------------------------------------------------- |
+| `-i`   | Selects the network interface.                                   |
+| `-r`   | Specifies the IP range to discover.                              |
+| `-p`   | Enables passive mode in versions that support it.                |
+| `-L`   | Listen-only mode in versions that support it.                    |
+| `-s`   | Sets the delay between ARP requests in versions that support it. |
+| `-c`   | Controls the number of scan rounds in versions that support it.  |
+
+Check `netdiscover -h` for the exact options supported by your installed version.
+
+### 7. Example
+
+```
+netdiscover -i eth0 -r 192.168.56.0/24
+```
+
+Explanation:
+
+- `-i eth0`: Use the network interface named `eth0`.
+- `-r 192.168.56.0/24`: Discover devices within that subnet.
+
+The `/24` represents a subnet mask of `255.255.255.0`, normally covering 256 addresses, from `192.168.56.0` to `192.168.56.255`.
+
+### 8. Understanding the output
+
+Example output:
+
+```
+Currently scanning: 192.168.56.0/24
+IP              MAC Address          Count  Len  Vendor
+192.168.56.1    08:00:27:aa:bb:cc      1    60   Oracle VirtualBox
+192.168.56.10   08:00:27:11:22:33      1    60   Oracle VirtualBox
+```
+
+| Field       | Meaning                                                           |
+| ----------- | ----------------------------------------------------------------- |
+| IP          | IP address of the discovered device.                              |
+| MAC Address | Hardware/network-interface address.                               |
+| Count       | Number of observations or replies counted by the tool.            |
+| Len         | Length of the observed packet, in bytes, as reported by the tool. |
+| Vendor      | Manufacturer inferred from the MAC address prefix.                |
+
+The example addresses and values are illustrative, not guaranteed output.
+
+### 9. Practical guide
+
+1. Run `ip a` to identify your network interface and assigned IP address.
+2. Determine the correct subnet range.
+3. Run Netdiscover on your authorised lab network.
+4. Review the IP and MAC addresses.
+5. Use the discovered host addresses for further authorised scanning with Nmap.
+
+Remember: Netdiscover finds local network hosts; Nmap can then examine their ports and services.
+
+## 5. Google Dorking
+
+Reconnaissance — Passive OSINT
+
+### 1. Definition
+
+Google Dorking, also called Google Hacking, is the technique of using advanced Google search operators to find specific information that is already indexed by Google.
+
+In simple words, instead of searching normally, we use special search commands to find particular files, web pages, or exposed information.
+
+It does not directly scan the target website. However, finding information in search results does not mean that the information is safe to access or use.
+
+### 2. Main uses
+
+- Finding publicly indexed documents.
+- Discovering login pages and website directories.
+- Identifying accidentally exposed information.
+- Finding misconfigured pages or files.
+- Helping organisations identify information that should not be publicly accessible.
+
+### 3. Phase
+
+It belongs to Reconnaissance (Passive OSINT) because the search is performed through Google's index rather than by directly probing the target website.
+
+### 4. Google search operators
+
+| Operator    | Meaning                                                   | Example                                        |
+| ----------- | --------------------------------------------------------- | ---------------------------------------------- |
+| `site:`     | Restricts results to a particular website or domain.      | `site:owasp.org`                               |
+| `filetype:` | Searches for a particular file type.                      | `filetype:pdf site:owasp.org`                  |
+| `intitle:`  | Searches for a word or phrase in the page title.          | `intitle:"cheat sheet" site:owasp.org`         |
+| `inurl:`    | Searches for a word or phrase in the URL.                 | `inurl:testing-guide site:owasp.org`           |
+| `intext:`   | Searches for words in the page content.                   | `intext:"vulnerability" site:owasp.org`        |
+| `-`         | Excludes a word or matching results.                      | `site:owasp.org -inurl:events`                 |
+| `" "`       | Searches for an exact phrase.                             | `"threat modeling" site:owasp.org`             |
+| `OR`        | Searches for either of two alternatives.                  | `site:owasp.org filetype:pdf OR filetype:pptx` |
+| `cache:`    | Historically requested Google's cached version of a page. | `cache:owasp.org`                              |
+
+Note: The `cache:` operator is no longer a dependable way to access cached pages because Google discontinued its cached-page feature.
+
+### 5. Understanding examples
+
+Example 1:
+
+```
+site:owasp.org
+```
+
+Shows indexed results from the OWASP website.
+
+Example 2:
+
+```
+filetype:pdf site:owasp.org
+```
+
+Finds PDF documents indexed from OWASP.
+
+Example 3:
+
+```
+intitle:"cheat sheet" site:owasp.org
+```
+
+Finds pages whose titles contain the phrase "cheat sheet" on the specified domain.
+
+### 6. Practical guide
+
+1. Open Google in a browser.
+2. Enter `site:example.com` to search for indexed pages of a domain you are authorised to assess.
+3. Add `filetype:pdf` to find indexed PDF files.
+4. Combine operators such as `intitle:` and `inurl:` to narrow the results.
+5. Record relevant findings for the security assessment.
+
+Remember: Google Dorking = using advanced search operators to find information already indexed by Google.
+
+## 6. FOCA
+
+Reconnaissance — Passive OSINT / Footprinting
+
+### 1. Definition
+
+FOCA stands for Fingerprinting Organizations with Collected Archives.
+
+It is an OSINT tool that finds publicly available documents belonging to a domain and extracts their metadata.
+
+In simple words, FOCA finds documents and examines the hidden information stored inside them.
+
+For example, a PDF may display only a report, but its metadata might contain the author's name or the software used to create it.
+
+### 2. Main uses
+
+- Finding public documents such as PDF, DOC, DOCX, XLS, and PPT files.
+- Extracting document metadata.
+- Discovering author names and usernames.
+- Identifying software versions used to create documents.
+- Finding internal file paths or printer names when they are present in metadata.
+- Correlating information across documents to identify possible internal naming conventions and network/domain structure.
+
+### 3. Phase
+
+It belongs to Reconnaissance (Passive OSINT / Footprinting) because it gathers publicly available documents and examines their metadata.
+
+### 4. What is metadata?
+
+Metadata means data about data.
+
+For example, a document's metadata may contain:
+
+- Author name
+- Date created
+- Date modified
+- Software used
+- Internal file path
+- Printer information
+
+Not every document contains all these fields.
+
+### 5. Practical guide
+
+1. Open FOCA and create a new project.
+2. Enter the authorised target domain, such as `example.com`.
+3. Click Search All to search for supported document types using the configured search engines.
+4. Select the discovered documents.
+5. Right-click and choose Download All to download them locally.
+6. Right-click the downloaded files and choose Extract Metadata or Extract All Metadata, depending on the version.
+7. Click Analyze Metadata to correlate the collected information.
+8. Review the findings for usernames, software versions, file paths, and internal naming conventions.
+
+### 6. Example
+
+Suppose an organisation publishes 20 PDF reports.
+
+FOCA examines the metadata and discovers that several reports were created by the same author using the same software. One report also contains an internal folder path.
+
+These findings may help the security team understand what information the organisation is unintentionally exposing.
+
+Remember: FOCA = finding public documents and extracting hidden metadata.
+
+## 7. WHOIS
+
+Reconnaissance — Passive OSINT
+
+### 1. Definition
+
+WHOIS is a query-response protocol and lookup service used to obtain registration information about domain names and IP address allocations.
+
+In simple words, WHOIS helps you find registration details about a domain, such as its registrar and name servers.
+
+Some registration information may be hidden by privacy protection or restricted by the registry.
+
+### 2. Main uses
+
+- Identifying the domain registrar.
+- Checking domain creation and expiry dates, when available.
+- Finding registered name servers.
+- Reviewing registration and administrative information that is publicly available.
+- Investigating domain ownership and registration history.
+
+### 3. Phase
+
+It belongs to Reconnaissance (Passive OSINT) because it obtains registration information without directly scanning the target system.
+
+### 4. Command syntax
+
+```
+whois <domain_or_IP>
+```
+
+Replace `<domain_or_IP>` with a domain name or IP address.
+
+### 5. Example
+
+```
+whois example.com
+```
+
+The output may contain fields like these:
+
+```
+Domain Name: example.com
+Registrar: Example Registrar
+Creation Date: YYYY-MM-DD
+Registry Expiry Date: YYYY-MM-DD
+Name Server: ns1.example.net
+Name Server: ns2.example.net
+```
+
+These are illustrative fields, not actual registration results.
+
+### 6. Understanding the output
+
+| Field                | Meaning                                                  |
+| -------------------- | -------------------------------------------------------- |
+| Domain Name          | The registered domain name.                              |
+| Registrar            | The company through which the domain was registered.     |
+| Creation Date        | The date the domain was registered, if available.        |
+| Registry Expiry Date | The domain's recorded expiry date, if available.         |
+| Name Server          | A server responsible for DNS information for the domain. |
+
+### 7. Practical guide
+
+1. Run `whois example.com` in a terminal that supports the WHOIS utility.
+2. Alternatively, use a reputable web-based WHOIS lookup.
+3. Check the registrar, dates, and name servers.
+4. Cross-reference the name servers with DNS tools such as Nslookup or services such as Robtex.
+
+Remember: WHOIS = finding domain registration information.
+
+## 8. Nslookup
+
+Reconnaissance — DNS Information Gathering
+
+### 1. Definition
+
+Nslookup stands for Name Server Lookup.
+
+It is a command-line tool used to query DNS servers and obtain information about domain names.
+
+In simple words, Nslookup helps translate domain names into IP addresses and find other DNS records.
+
+### 2. Main uses
+
+- Finding the IP address associated with a domain.
+- Finding mail servers.
+- Finding authoritative name servers.
+- Retrieving TXT records, which may include SPF and domain-verification information.
+- Comparing DNS responses from different DNS servers.
+
+### 3. Phase
+
+It is used during Reconnaissance.
+
+It lies around the passive/active boundary because it sends queries to DNS infrastructure, although it does not necessarily contact the target's web server.
+
+### 4. Command syntax
+
+```
+nslookup <domain>
+```
+
+```
+nslookup -type=<record_type> <domain>
+```
+
+```
+nslookup <domain> <dns_server>
+```
+
+### 5. Options and DNS record types
+
+| Record type | Meaning                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------- |
+| `A`         | Maps a domain to an IPv4 address.                                                                        |
+| `MX`        | Identifies mail servers for a domain.                                                                    |
+| `NS`        | Identifies name servers for a domain.                                                                    |
+| `TXT`       | Stores text information, often used for SPF and verification.                                            |
+| `ANY`       | Requests information about available record types, but modern servers may limit or refuse these queries. |
+
+### 6. Examples
+
+Example 1: Find an IP address
+
+```
+nslookup example.com
+```
+
+Returns DNS information, commonly including an IPv4 address if an A record is available.
+
+Example 2: Find mail servers
+
+```
+nslookup -type=MX example.com
+```
+
+Shows available MX records.
+
+Example 3: Find name servers
+
+```
+nslookup -type=NS example.com
+```
+
+Shows available NS records.
+
+Example 4: Query Google's DNS server
+
+```
+nslookup example.com 8.8.8.8
+```
+
+Asks the DNS resolver at `8.8.8.8` for information about the domain.
+
+### 7. Practical guide
+
+1. Run a normal Nslookup command to check the domain's DNS response.
+2. Use `-type=MX` to check mail-server records.
+3. Use `-type=NS` to check name-server records.
+4. Use `-type=TXT` to inspect available text records.
+5. Compare results from different DNS resolvers if you suspect inconsistent DNS information.
+
+Different responses do not automatically prove DNS poisoning; DNS caching, propagation, and configuration differences can also explain them.
+
+Remember: Nslookup = querying DNS records.
+
+## 9. Sublist3r
+
+Reconnaissance — Subdomain Enumeration
+
+### 1. Definition
+
+Sublist3r is a Python-based tool used to discover subdomains associated with a domain.
+
+In simple words, it helps find the different subdomains that belong to an organisation.
+
+For example, a domain might have subdomains such as:
+
+- `www.example.com`
+- `mail.example.com`
+- `lms.example.com`
+
+These are illustrative examples, not verified hosts.
+
+### 2. Main uses
+
+- Discovering subdomains.
+- Mapping an organisation's internet-facing domain structure.
+- Finding forgotten or legacy subdomains.
+- Identifying additional hosts that may need security assessment.
+
+### 3. Phase
+
+It belongs to Reconnaissance.
+
+It mainly uses passive information sources, but optional brute-force discovery actively generates possible subdomain names and checks them.
+
+### 4. Command syntax
+
+```
+sublist3r -d <domain> -o <output_file> -e <engines> -t <threads> -b
+```
+
+The exact supported options depend on the Sublist3r version.
+
+### 5. Options explained
+
+| Option | Meaning                                                                           |
+| ------ | --------------------------------------------------------------------------------- |
+| `-d`   | Specifies the target domain.                                                      |
+| `-o`   | Saves the results to a file.                                                      |
+| `-e`   | Specifies search engines or supported discovery sources.                          |
+| `-t`   | Sets the number of threads used for brute-force mode in versions that support it. |
+| `-b`   | Enables subdomain brute-forcing.                                                  |
+| `-v`   | Displays verbose output, where supported.                                         |
+| `-p`   | Specifies ports for scanning discovered subdomains, where supported.              |
+
+Brute force, in this context, means trying possible subdomain names from a list or wordlist and checking which ones exist.
+
+### 6. Example
+
+```
+sublist3r -d example.com -o subdomains.txt -e bing
+```
+
+Explanation:
+
+- `-d example.com`: Target domain.
+- `-o subdomains.txt`: Save discovered subdomains in a file.
+- `-e bing`: Select the supported Bing source.
+
+The available search-engine integrations may be outdated or unavailable in some versions, so check the tool's help and documentation.
+
+### 7. Practical guide
+
+1. Run Sublist3r against an authorised domain.
+2. Review the discovered subdomain list.
+3. Cross-check the results with sources such as Robtex or DNSdumpster.
+4. Remove duplicates and verify which hosts resolve.
+5. If authorised, use Nmap to examine discovered hosts further.
+
+Remember: Sublist3r = discovering subdomains belonging to a domain.
+
+## 10. Maltego
+
+Reconnaissance — Passive OSINT / Link Analysis
+
+### 1. Definition
+
+Maltego is a visual OSINT and link-analysis platform.
+
+Instead of displaying information only as a list, it displays entities and their relationships as a graph.
+
+In simple words, Maltego helps you understand how domains, IP addresses, email addresses, and other pieces of information are connected.
+
+### 2. Main uses
+
+- Mapping domain names and DNS names.
+- Finding relationships between IP addresses and domains.
+- Discovering publicly available email addresses.
+- Connecting related entities.
+- Investigating shared infrastructure and repeated contacts.
+
+### 3. Phase
+
+It belongs to Reconnaissance (Passive OSINT / Link Analysis) when used to investigate public information.
+
+Some transforms may perform active queries, and data availability depends on the transform, integrations, and account permissions.
+
+### 4. Important concepts
+
+| Concept   | Meaning                                                                          |
+| --------- | -------------------------------------------------------------------------------- |
+| Entity    | One item of information, such as a domain, person, email address, or IP address. |
+| Transform | An operation that searches for related information from an entity.               |
+| Graph     | A visual map of entities and the connections between them.                       |
+
+### 5. Practical guide
+
+1. Open Maltego and select File → New Graph.
+2. Drag a Domain entity onto the canvas.
+3. Enter an authorised domain.
+4. Right-click the domain and select a suitable DNS-related transform, such as a transform that discovers DNS names.
+5. Use an email-related transform, if available, to search for related email addresses.
+6. Apply a person-related transform if the configured source supports it.
+7. Examine the graph to identify relationships among the discovered entities.
+
+Transform names and menu locations can differ between Maltego editions and configurations.
+
+### 6. Example
+
+Suppose an investigation begins with `example.com`.
+
+A graph might connect:
+
+`Domain → DNS Name → IP Address`
+
+It might also connect the domain to publicly listed email addresses.
+
+These relationships help the investigator understand the organisation's digital footprint.
+
+Remember: Maltego = visually connecting information through entities, transforms, and graphs.
+
+## 11. Shodan
+
+Reconnaissance — Passive OSINT
+
+### 1. Definition
+
+Shodan is a search engine for internet-connected devices.
+
+Unlike ordinary search engines, which mainly index web pages, Shodan indexes information collected from internet-facing services and device banners.
+
+In simple words, Shodan helps you search for internet-connected servers, routers, cameras, and other devices using information about their exposed services.
+
+### 2. Main uses
+
+- Checking publicly visible services on an IP address.
+- Identifying exposed network ports.
+- Examining service banners and software information.
+- Discovering internet-facing devices.
+- Identifying potentially exposed or misconfigured systems.
+
+### 3. Phase
+
+It belongs to Reconnaissance (Passive OSINT) when you query Shodan's existing database instead of directly probing the target.
+
+### 4. How to use Shodan
+
+1. Open [Shodan](https://www.shodan.io/).
+2. Search for an authorised IP address or organisation.
+3. Review the available host information.
+4. Examine the reported ports and services.
+5. Record the relevant observations and timestamps for your security report.
+
+### 5. Understanding important terms
+
+- Port: A logical communication endpoint used by a service.
+- Service banner: Information a service provides about itself, which may include software or version details.
+- Internet-facing device: A device or service reachable from the public internet.
+- Timestamp: The date and time when the information was observed or recorded.
+
+### 6. Shodan search syntax
+
+Example 1:
+
+```
+apache country:"IN"
+```
+
+Searches for Shodan records matching Apache and the country filter for India.
+
+Example 2:
+
+```
+port:3389 org:"Example Org"
+```
+
+Searches for records matching port 3389 and the specified organisation filter.
+
+Port 3389 is commonly associated with Remote Desktop Protocol (RDP).
+
+### 7. Practical guide
+
+1. Open Shodan.
+2. Search for an authorised IP address or use suitable filters.
+3. Check the hostnames, domains, organisation, and location information shown.
+4. Examine the reported open ports and services.
+5. Record the findings, including when the observations were made.
+
+Remember: Shodan = searching an existing database of internet-connected devices and their exposed services.
+
+## 12. Nmap — Network Mapper
+
+Scanning — Active
+
+### 1. Definition
+
+Nmap is a free, open-source network scanning tool.
+
+It discovers hosts, scans ports, identifies services and versions, and can attempt to identify the operating system.
+
+In simple words, Nmap helps you discover which devices are alive, which ports are open, and which services are running.
+
+Unlike passive OSINT tools, Nmap sends packets directly to the target.
+
+### 2. Main uses
+
+- Discovering live hosts on a network.
+- Identifying open, closed, and filtered ports.
+- Detecting services such as SSH, HTTP, and SMB.
+- Identifying software versions.
+- Attempting operating-system detection.
+- Gathering information for a subsequent vulnerability assessment.
+
+### 3. Phase
+
+It belongs to Scanning (Active).
+
+It is generally used after reconnaissance and before or alongside vulnerability assessment.
+
+### 4. Basic syntax
+
+```
+nmap [scan_type] [options] <target>
+```
+
+Here:
+
+- `scan_type` specifies the type of scan.
+- `options` specifies additional settings.
+- `target` is the authorised IP address, hostname, or network range.
+
+### 5. Important Nmap commands
+
+Command 1: Discover live hosts
+
+```
+nmap -sn 192.168.56.0/24
+```
+
+- `-sn` performs host discovery without a normal port scan.
+- `/24` specifies the network range.
+
+It helps identify devices that respond to the discovery probes.
+
+Command 2: Default scan
+
+```
+nmap 192.168.56.10
+```
+
+Runs Nmap's default scan against the target. By default, this commonly checks the 1,000 most common TCP ports.
+
+Command 3: Scan all TCP ports
+
+```
+nmap -p- 192.168.56.10
+```
+
+\- `-p-` means scan TCP ports 1–65535.
+
+Your original notes showed `nmap -p- 22,80,443,587`, but that combines two conflicting port specifications. To scan only those four ports, use:
+
+```
+nmap -p 22,80,443,587 192.168.56.10
+```
+
+Command 4: SYN scan
+
+```
+sudo nmap -sS 192.168.56.10
+```
+
+- `-sS` performs a TCP SYN scan.
+- `sudo` requests elevated privileges on systems that support it.
+
+A SYN scan sends TCP SYN packets to examine port states without completing a normal TCP connection in many cases. It is not guaranteed to be stealthy or unlogged.
+
+Command 5: OS detection
+
+```
+sudo nmap -O 192.168.56.10
+```
+
+\- `-O` attempts to identify the target operating system using network-response characteristics.
+
+Command 6: Service/version detection
+
+```
+nmap -sV 192.168.56.10
+```
+
+\- `-sV` probes detected ports to identify the services and their possible versions.
+
+Command 7: Combined scan
+
+```
+sudo nmap -sS -sV -O 192.168.56.10
+```
+
+Combines SYN scanning, service/version detection, and OS detection.
+
+Command 8: Aggressive scan
+
+```
+sudo nmap -A 192.168.56.10
+```
+
+`-A` enables several features, including OS detection, version detection, default script scanning, and traceroute.
+
+It can generate more traffic and is more intrusive than a basic scan.
+
+### 6. Understanding Nmap output
+
+Example:
+
+```
+PORT     STATE  SERVICE       VERSION
+22/tcp   open   ssh           OpenSSH 8.2p1 Ubuntu
+80/tcp   open   http          Apache httpd 2.4.41
+139/tcp  open   netbios-ssn   Samba smbd 4
+445/tcp  open   netbios-ssn   Samba smbd 4
+8080/tcp open   http          Apache Tomcat 9.0.7
+```
+
+This is illustrative output, not a scan of an actual system.
+
+| Field   | Meaning                                                                  |
+| ------- | ------------------------------------------------------------------------ |
+| PORT    | Port number and transport protocol.                                      |
+| STATE   | Whether Nmap considers the port open, closed, or filtered.               |
+| SERVICE | The service commonly associated with that port or identified by probing. |
+| VERSION | The detected software/version information, when available.               |
+
+Important port examples:
+
+| Port | Common service          | Purpose                                                 |
+| ---- | ----------------------- | ------------------------------------------------------- |
+| 22   | SSH                     | Secure remote login.                                    |
+| 80   | HTTP                    | Web traffic without TLS encryption.                     |
+| 139  | NetBIOS session service | Commonly associated with Windows file/network services. |
+| 445  | SMB                     | File sharing and related network services.              |
+| 8080 | Alternative HTTP port   | Often used by web applications or application servers.  |
+
+Open means a service is listening on the port. It does not automatically mean that the service is vulnerable.
+
+### 7. Practical guide
+
+1. Use `ip a` to check your lab network interface and address.
+2. Run `nmap -sn` against your authorised lab subnet.
+3. Choose a discovered host for further testing.
+4. Run a port scan using `-p-` if a complete TCP port check is required.
+5. Use `-sV` to identify services and possible versions.
+6. Use `-O` to attempt OS detection.
+7. Save and interpret the results.
+8. Use the findings to guide a vulnerability assessment.
+
+The service/version information may help you choose appropriate checks in Nessus or determine what to investigate in a controlled exploitation lab using Armitage.
+
+Remember: Nmap = discovering hosts, ports, services, and possible OS information.
+
+## 13. Nessus
+
+Vulnerability Assessment
+
+### 1. Definition
+
+Nessus is a vulnerability assessment platform developed by Tenable.
+
+It checks systems for known vulnerabilities, missing patches, insecure configurations, and other potential weaknesses using its vulnerability checks and plugins.
+
+In simple words, Nessus automatically examines a system and produces a report showing possible security weaknesses and how to fix them.
+
+### 2. Main uses
+
+- Finding outdated software.
+- Identifying missing security patches.
+- Detecting insecure configurations.
+- Checking for known vulnerabilities.
+- Producing reports ranked by severity.
+- Providing references and remediation advice.
+
+### 3. Phase
+
+It belongs to Vulnerability Assessment, which usually comes after initial scanning and before controlled exploitation testing.
+
+Nmap identifies hosts, ports, and services. Nessus performs more specialised checks for potential weaknesses.
+
+### 4. Editions
+
+| Edition             | Description                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Nessus Essentials   | Free edition with limited scanning capacity, subject to current product terms.                                   |
+| Nessus Professional | Paid vulnerability assessment edition.                                                                           |
+| Nessus Expert       | Paid edition with additional capabilities, including certain external attack-surface and cloud-related features. |
+
+The exact features, limits, and licensing conditions can change.
+
+### 5. Severity ratings
+
+| Severity | Simple meaning                                                |
+| -------- | ------------------------------------------------------------- |
+| Critical | Very serious weakness that may enable severe compromise.      |
+| High     | Significant risk requiring prompt attention.                  |
+| Medium   | Moderate risk that may depend on particular conditions.       |
+| Low      | Lower-severity weakness or configuration issue.               |
+| Info     | Informational finding that may not represent a vulnerability. |
+
+The severity is based on the scanner's assessment. It should be considered alongside the actual system configuration and business impact.
+
+### 6. Practical guide
+
+Step 1: Open Nessus
+
+Open the Nessus web interface, commonly:
+
+```
+https://localhost:8834
+```
+
+This address assumes Nessus is running on the same computer.
+
+Step 2: Create a scan
+
+Navigate to:
+
+`My Scans → New Scan → Basic Network Scan`
+
+Step 3: Enter scan details
+
+- Give the scan a descriptive name.
+- Enter the authorised target IP address or range.
+- For example, use the IP address of your isolated lab VM.
+
+Step 4: Save and launch
+
+Click Save, then use the Launch/Play control to start the scan.
+
+Step 5: Monitor the scan
+
+Wait for the scan to finish. The duration depends on the target, network, and enabled checks.
+
+Step 6: Review vulnerabilities
+
+Open the completed scan and select the Vulnerabilities tab.
+
+Choose a Critical or High finding for closer examination.
+
+Step 7: Find the CVE reference
+
+Open the finding's details and look for its references, often under a section such as See Also or References.
+
+A CVE identifier looks like:
+
+```
+CVE-YYYY-NNNNN
+```
+
+It identifies a publicly documented vulnerability.
+
+Step 8: Research the vulnerability
+
+Use the following official resources:
+
+- [CVE Program](https://www.cve.org/)
+- [NIST National Vulnerability Database](https://nvd.nist.gov/)
+
+Review the vulnerability description, severity information, affected versions, and available remediation.
+
+### 7. Example
+
+Suppose Nessus identifies outdated web server software.
+
+It may report:
+
+- The affected software and version.
+- A related CVE identifier.
+- A severity rating.
+- The evidence supporting the finding.
+- Recommended remediation, such as applying a security update.
+
+The next step is to verify whether the system is genuinely affected and apply the appropriate fix.
+
+### 8. Important safety point
+
+Use Nessus only against systems you own or have explicit authorisation to assess. DVWA and Metasploitable are common choices for isolated practice labs.
+
+Remember: Nessus = automated vulnerability detection, severity ranking, and remediation guidance.
+
+## 14. Wireshark
+
+Network Analysis / Sniffing / Forensics
+
+### 1. Definition
+
+Wireshark is a free, open-source network protocol analyser.
+
+It captures and displays network packets so that users can examine how devices communicate.
+
+In simple words, Wireshark lets you inspect network traffic to understand what is being sent and received.
+
+It can be used for troubleshooting, security monitoring, and forensic investigation.
+
+### 2. Main uses
+
+- Capturing network traffic.
+- Examining DNS queries and responses.
+- Analysing TCP connections and handshakes.
+- Inspecting HTTP traffic when the contents are visible.
+- Troubleshooting network communication problems.
+- Investigating suspicious or malicious network traffic.
+- Verifying network behaviour during authorised security tests.
+- Examining recorded traffic during incident response.
+
+Encrypted traffic, such as HTTPS, generally does not reveal its protected application contents unless suitable decryption information is available.
+
+### 3. Phase
+
+Wireshark is used in Network Analysis and Sniffing. It can also support scanning analysis, post-exploitation investigation, and digital forensics.
+
+For example, it can help an investigator examine whether a suspicious host made an unexpected outbound connection.
+
+### 4. Two important concepts
+
+Wireshark has two main types of filters.
+
+A. Capture filter
+
+A capture filter is applied before or during packet capture. It limits which packets are recorded.
+
+Example:
+
+```
+port 80
+```
+
+This captures traffic matching port 80, subject to the selected interface and capture conditions.
+
+Capture filters use BPF syntax.
+
+B. Display filter
+
+A display filter is applied after packets have been captured. It controls which packets are displayed on screen without removing the other captured packets.
+
+Example:
+
+```
+dns
+```
+
+This displays packets Wireshark recognises as DNS traffic.
+
+Display filters use Wireshark's own filter syntax, which differs from BPF capture-filter syntax.
+
+### 5. Common display filters
+
+| Filter                                     | Meaning                                                                                               |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `ip.addr == 192.168.56.12`                 | Displays packets to or from the specified IPv4 address.                                               |
+| `tcp.port == 80`                           | Displays TCP packets with source or destination port 80.                                              |
+| `http`                                     | Displays packets recognised as HTTP.                                                                  |
+| `dns`                                      | Displays packets recognised as DNS.                                                                   |
+| `tcp.flags.syn == 1 && tcp.flags.ack == 0` | Displays TCP packets with SYN set and ACK unset, often associated with the start of a TCP connection. |
+
+Understanding the last filter: TCP normally establishes a connection through a three-way handshake:
+
+SYN
+
+Client → Server
+
+SYN-ACK
+
+Server → Client
+
+Client sends the final ACK
+
+- SYN: Requests to start a TCP connection.
+- SYN-ACK: Acknowledges the request and responds.
+- ACK: Confirms receipt and completes the normal handshake.
+
+The SYN-only display filter can help you observe connection attempts, including traffic generated by authorised Nmap scans.
+
+### 6. Command-line equivalent: TShark
+
+TShark is Wireshark's command-line packet analyser.
+
+Example:
+
+```
+tshark -i eth0 -f "port 80"
+```
+
+Explanation:
+
+- `tshark`: Starts the command-line analyser.
+- `-i eth0`: Selects the network interface.
+- `-f "port 80"`: Applies a capture filter for traffic matching port 80.
+
+The interface name may differ on your computer. Use the correct interface and capture only traffic you are authorised to inspect.
+
+### 7. Practical guide
+
+1. Open Wireshark.
+2. Select the correct network interface, such as an isolated host-only or internal lab adapter.
+3. Start packet capture.
+4. Generate some authorised test traffic in the lab.
+5. Apply a display filter such as `ip.addr == 192.168.56.12`.
+6. Select individual packets and inspect their protocol details.
+7. Use `dns` to examine DNS traffic or `tcp.flags.syn == 1 && tcp.flags.ack == 0` to examine initial TCP connection attempts.
+8. Stop the capture and save the capture file if needed for analysis.
+
+### 8. Example use during ethical hacking
+
+Suppose you run an authorised Nmap scan against a lab VM while Wireshark is capturing traffic.
+
+Wireshark may show packets sent to different ports and the responses returned by the target. You can use this information to understand how scanning works at the packet level.
+
+Remember: Wireshark = capturing, filtering, and analysing network packets.
+
+# Final revision table — all 13 tools
+
+| No. | Tool           | Main purpose                                                 | Phase                       |
+| --- | -------------- | ------------------------------------------------------------ | --------------------------- |
+| 2   | Sysmon         | Record Windows activity and detect suspicious behaviour.     | Detection / Monitoring      |
+| 3   | theHarvester   | Collect public emails, hosts, and domain information.        | Reconnaissance              |
+| 4   | Netdiscover    | Discover live devices on a local network.                    | Scanning                    |
+| 5   | Google Dorking | Search indexed pages using advanced operators.               | Reconnaissance              |
+| 6   | FOCA           | Find public documents and extract metadata.                  | Reconnaissance              |
+| 7   | WHOIS          | Find domain registration details.                            | Reconnaissance              |
+| 8   | Nslookup       | Query DNS records.                                           | Reconnaissance              |
+| 9   | Sublist3r      | Discover subdomains.                                         | Reconnaissance              |
+| 10  | Maltego        | Visualise relationships between information.                 | Reconnaissance              |
+| 11  | Shodan         | Search indexed information about internet-connected devices. | Reconnaissance              |
+| 12  | Nmap           | Discover hosts, ports, services, and possible OS details.    | Scanning                    |
+| 13  | Nessus         | Find and rank possible vulnerabilities.                      | Vulnerability Assessment    |
+| 14  | Wireshark      | Capture and analyse network packets.                         | Network Analysis / Sniffing |
+
+## Easy way to remember them
+
+- Find public information: theHarvester, Google Dorking, FOCA, WHOIS, Maltego, Shodan.
+- Find domain and network information: Nslookup, Sublist3r, Netdiscover.
+- Find hosts, ports, and services: Nmap.
+- Find system vulnerabilities: Nessus.
+- Inspect network packets: Wireshark.
+- Monitor Windows activity: Sysmon.
+
+One important distinction: reconnaissance tools gather information, scanning tools examine reachable systems, vulnerability scanners identify possible weaknesses, Wireshark analyses traffic, and Sysmon records activity on Windows systems. These tools complement one another but do different jobs.
+
+If you want, I can:
+
+- Summarize this conversation
+- Explain the main uses and phases of the Nmap tool
+- Create a comparison table of reconnaissance tools discussed

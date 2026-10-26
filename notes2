@@ -1,0 +1,544 @@
+You want **the actual procedure for performing each tool**, not its definition or uses. Each tool below has **exactly four practical steps and an example of the output you should see**.
+
+One important point: I cannot access your Linux machine or run these scans from here. Therefore, I will show representative command output, not claim it is the actual output from your computer. Where the output depends on the live network, I will explain what to look for.
+
+# 1. TheHarvester
+
+### Procedure — 4 steps
+
+**Step 1: Install the tool.**
+```bash
+sudo apt update
+sudo apt install theharvester -y
+```
+
+**Step 2: Check the available commands.**
+```bash
+theHarvester --help
+```
+
+**Step 3: Search a domain using a supported source.**
+```bash
+theHarvester -d example.com -b crtsh
+```
+
+**Step 4: Examine the returned hostnames and email addresses.**
+
+### Expected output
+
+The output format may resemble:
+
+```text
+[*] Hosts found:
+www.example.com
+mail.example.com
+
+[*] Emails found:
+No emails found.
+```
+
+The hostnames above are illustrative. The actual results depend on the source queried.
+
+---
+
+# 2. Netdiscover
+
+### Procedure — 4 steps
+
+**Step 1: Check your network interfaces.**
+```bash
+ip a
+```
+
+**Step 2: Identify the IP address and subnet of your lab network.**
+
+For example, use `192.168.56.0/24` only if that is your actual VirtualBox Host-Only subnet.
+
+**Step 3: Scan your lab subnet.**
+```bash
+sudo netdiscover -r 192.168.56.0/24
+```
+
+**Step 4: Examine the discovered IP addresses and MAC addresses.**
+
+### Expected output
+
+```text
+IP             At MAC Address       Count    Len    MAC Vendor
+192.168.56.1   AA:BB:CC:DD:EE:01    1        60     Unknown
+192.168.56.10  AA:BB:CC:DD:EE:02    1        60     Unknown
+```
+
+These addresses are examples, not actual discoveries. Your output will depend on the devices connected to your lab network.
+
+---
+
+# 3. WHOIS
+
+### Procedure — 4 steps
+
+**Step 1: Install WHOIS if necessary.**
+```bash
+sudo apt update
+sudo apt install whois -y
+```
+
+**Step 2: Query a domain.**
+```bash
+whois example.com
+```
+
+**Step 3: Locate the registration information in the response.**
+
+Look for the registrar, creation date, expiration date, domain status, and nameservers.
+
+**Step 4: Record the fields returned by the lookup.**
+
+### Expected output
+
+For `example.com`, the actual response may include fields such as:
+
+```text
+Domain Name: EXAMPLE.COM
+Registrar: [registrar returned by lookup]
+Creation Date: [registration date]
+Registry Expiry Date: [expiry date]
+Name Server: [registered nameserver]
+Domain Status: [domain status]
+```
+
+The bracketed fields will contain the values returned by the lookup. Registration information may be redacted or unavailable.
+
+---
+
+# 4. Nslookup
+
+### Procedure — 4 steps
+
+**Step 1: Find the IP address of a domain.**
+```bash
+nslookup example.com
+```
+
+**Step 2: Perform a reverse lookup.**
+```bash
+nslookup 8.8.8.8
+```
+
+**Step 3: Query the mail servers and nameservers.**
+```bash
+nslookup -type=MX gmail.com
+nslookup -type=NS microsoft.com
+```
+
+**Step 4: Query TXT records.**
+```bash
+nslookup -type=TXT example.com
+```
+
+### Expected output
+
+The first command may return something like:
+
+```text
+Server:  192.168.1.1
+Address: 192.168.1.1#53
+
+Non-authoritative answer:
+Name:    example.com
+Address: [IP address returned by DNS]
+```
+
+The other commands return the corresponding MX, NS, PTR, or TXT records when available.
+
+---
+
+# 5. Sublist3r
+
+### Procedure — 4 steps
+
+**Step 1: Install Sublist3r if the package is available.**
+```bash
+sudo apt update
+sudo apt install sublist3r -y
+```
+
+**Step 2: Check its options.**
+```bash
+sublist3r -h
+```
+
+**Step 3: Enumerate subdomains of a domain you are authorized to investigate.**
+```bash
+sublist3r -d example.com
+```
+
+**Step 4: Record the discovered subdomains and the final count.**
+
+### Expected output
+
+The output may resemble:
+
+```text
+[-] Enumerating subdomains now for example.com
+
+www.example.com
+mail.example.com
+
+[-] Total Unique Subdomains Found: 2
+```
+
+This is an illustrative example. The tool may return different subdomains or zero results, particularly if its search integrations are unavailable.
+
+---
+
+# 6. Nmap
+
+### Procedure — 4 steps
+
+**Step 1: Check whether the test host is reachable.**
+```bash
+nmap -sn scanme.nmap.org
+```
+
+**Step 2: Perform a basic scan of the permitted test host.**
+```bash
+nmap scanme.nmap.org
+```
+
+**Step 3: Identify service versions.**
+```bash
+nmap -sV scanme.nmap.org
+```
+
+**Step 4: Examine the open ports and detected services.**
+
+### Expected output
+
+A scan may show a table in this format:
+
+```text
+PORT    STATE    SERVICE
+22/tcp  open     ssh
+80/tcp  open     http
+```
+
+These are example entries, not a live scan result. The ports and services you see depend on the target's current state.
+
+For your own lab machine, you can also run:
+
+```bash
+nmap -p 22,80,443 192.168.56.10
+```
+
+Replace the IP address with your authorized lab machine's actual IP.
+
+---
+
+# 7. Wireshark
+
+### Procedure — 4 steps
+
+**Step 1: Open Wireshark.**
+```bash
+sudo wireshark
+```
+
+**Step 2: Select the correct network interface**, such as `eth0` or `wlan0`, and start capturing.
+
+**Step 3: Generate traffic.**
+```bash
+ping -c 4 8.8.8.8
+```
+
+**Step 4: Stop the capture and enter a display filter**, such as `icmp`, `dns`, or `tcp`.
+
+### Expected output
+
+Wireshark displays packets in a table resembling:
+
+```text
+No.    Source          Destination     Protocol    Info
+1      Your IP         8.8.8.8         ICMP        Echo request
+2      8.8.8.8         Your IP         ICMP        Echo reply
+```
+
+These rows illustrate the format. If the ping succeeds and the correct interface is selected, you should see ICMP packets corresponding to the requests and replies.
+
+---
+
+# 8. Armitage
+
+### Procedure — 4 steps
+
+**Step 1: Start PostgreSQL.**
+```bash
+sudo systemctl start postgresql
+```
+
+**Step 2: Initialize the Metasploit database if necessary.**
+```bash
+sudo msfdb init
+```
+
+**Step 3: Launch Armitage.**
+```bash
+sudo armitage
+```
+
+Click **Connect** when prompted.
+
+**Step 4: Scan your authorized lab machine.**
+
+Use **Hosts → Nmap Scan → Quick Scan**, if available in your version. Enter your lab machine's IP address and inspect the discovered hosts and services.
+
+### Expected output
+
+Armitage may show a host map and information such as:
+
+```text
+Host: 192.168.56.10
+Status: Discovered
+Ports: [ports found by scan]
+Services: [services detected]
+```
+
+The fields shown depend on the scan. A detected host or service does not establish that an exploit will work.
+
+---
+
+# 9. Maltego
+
+### Procedure — 4 steps
+
+**Step 1: Open Maltego**, sign in, and create a new graph.
+
+**Step 2: Find the Domain entity** in the Entity Palette and drag it onto the graph.
+
+**Step 3: Enter a domain you are authorized to investigate**, such as `example.com`.
+
+**Step 4: Right-click the domain and select an available DNS or website transform.**
+
+### Expected output
+
+Maltego may create a graph connecting entities, for example:
+
+```text
+example.com
+     |
+  Nameserver
+     |
+  IP Address
+```
+
+This diagram illustrates the graph structure. The actual entities and connections depend on the transforms and their results.
+
+---
+
+# 10. Google Dorking
+
+### Procedure — 4 steps
+
+**Step 1: Open Google in your browser.**
+
+**Step 2: Find indexed pages.**
+```text
+site:example.com
+```
+
+**Step 3: Search for indexed PDF documents.**
+```text
+site:example.com filetype:pdf
+```
+
+**Step 4: Review the titles and URLs returned by Google.**
+
+### Expected output
+
+Google displays matching search results, for example:
+
+```text
+Example Domain
+https://example.com/
+
+[Matching PDF title]
+[URL returned by Google]
+```
+
+The second entry is a placeholder for a real search result. Search results vary, and the query may return no documents.
+
+---
+
+# 11. Shodan
+
+### Procedure — 4 steps
+
+**Step 1: Open the official website:** [Shodan](https://www.shodan.io/?utm_source=chatgpt.com)
+
+**Step 2: Sign in if required.**
+
+**Step 3: Search for a domain or an IP address you are authorized to investigate.**
+
+**Step 4: Open an available host record and examine its ports, service banners, and observation details.**
+
+### Expected output
+
+A host record may contain fields like:
+
+```text
+IP: [recorded IP address]
+Port: [recorded port]
+Transport: tcp
+Service: [detected service]
+Hostnames: [recorded hostnames]
+```
+
+The values come from Shodan's available records. They may not represent the host's current state because Shodan searches previously collected information.
+
+---
+
+# 12. Robtex
+
+### Procedure — 4 steps
+
+**Step 1: Open the official website:** [Robtex](https://www.robtex.com/?utm_source=chatgpt.com)
+
+**Step 2: Enter a domain**, such as `example.com`, in the search field.
+
+**Step 3: Open the relevant result and examine its DNS and IP information.**
+
+**Step 4: Record the returned IP addresses, nameservers, and other available DNS relationships.**
+
+### Expected output
+
+The result may contain fields resembling:
+
+```text
+Domain: example.com
+IP addresses: [returned addresses]
+Nameservers: [returned nameservers]
+DNS records: [returned records]
+```
+
+The bracketed values must come from the actual lookup.
+
+---
+
+# 13. FOCA
+
+### Procedure — 4 steps
+
+**Step 1: Open FOCA and create a new project.**
+
+Enter a project name, a domain, and a folder for downloaded documents. Click **Create**.
+
+**Step 2: Select the available search engines and file extensions**, such as PDF and DOCX. Click **Search All**.
+
+**Step 3: If documents are found, select them and use the available download option.**
+
+If the search returns zero results, use **Add file** or **Add folder**, if supported by your version, to import a document you own.
+
+**Step 4: Select the documents and choose the metadata extraction option.** Open Metadata Summary if available.
+
+### Expected output
+
+FOCA may display fields like:
+
+```text
+File: Report.docx
+Author: [author recorded in the file]
+Software: [document creation software]
+Created: [recorded creation date]
+```
+
+These fields are populated from the actual document metadata. Some documents contain no author or creation information.
+
+---
+
+# 14. Nikto
+
+### Procedure — 4 steps
+
+**Step 1: Install Nikto.**
+```bash
+sudo apt update
+sudo apt install nikto -y
+```
+
+**Step 2: Check the available options.**
+```bash
+nikto -Help
+```
+
+**Step 3: Scan a web server that you own or are authorized to test.**
+
+For a local web server:
+
+```bash
+nikto -h http://127.0.0.1
+```
+
+**Step 4: Review the findings and note any warnings, potentially risky files, or configuration issues.**
+
+### Expected output
+
+The output may contain entries like:
+
+```text
+- Nikto v2.x.x
+- Target IP: 127.0.0.1
+- Target Port: 80
+
++ [Finding reported by the scanner]
++ [Additional finding, if any]
+```
+
+The findings depend on the web server. If no web server is running on `127.0.0.1`, the connection may fail.
+
+---
+
+# 15. Sysmon
+
+### Procedure — 4 steps
+
+**Step 1: Download Sysmon** from the official [Microsoft Sysinternals Sysmon page](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon?utm_source=chatgpt.com) and extract the files.
+
+**Step 2: Open PowerShell as Administrator**, navigate to the extracted folder, and install Sysmon if it is not already installed.
+
+```powershell
+.\Sysmon64.exe -i
+```
+
+**Step 3: Generate a process event** by opening a normal application, such as Notepad.
+
+**Step 4: Open Event Viewer** by running `eventvwr.msc`. Navigate to:
+
+`Applications and Services Logs → Microsoft → Windows → Sysmon → Operational`
+
+Inspect the available events.
+
+### Expected output
+
+A process creation event may include fields such as:
+
+```text
+Event ID: 1
+Image: C:\Windows\System32\notepad.exe
+Process ID: [actual process ID]
+Command Line: notepad.exe
+```
+
+Your actual values will depend on the process and Sysmon configuration.
+
+---
+
+## Final note for your practical record
+
+For each experiment, record:
+
+1. **Procedure:** The four steps above.
+2. **Command or action:** The command you actually executed or the menu you selected.
+3. **Output:** Copy the output from your own terminal or take a screenshot of the actual application result.
+4. **Inference:** State what the result demonstrates.
+
+The example outputs here show the format, but they are not verified results from your computer.
